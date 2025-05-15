@@ -1,4 +1,3 @@
-
 import { useState, useEffect, useRef } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
@@ -31,16 +30,30 @@ const GeminiChat = () => {
   
   // Check if user is authenticated and fetch messages
   useEffect(() => {
-    const checkUser = async () => {
+    checkUserAuth();
+  }, []);
+  
+  const checkUserAuth = async () => {
+    try {
+      // Try to get user from localStorage first (faster)
+      const storedUser = localStorage.getItem("currentUser");
+      if (storedUser) {
+        const user = JSON.parse(storedUser);
+        setCurrentUser(user);
+        fetchMessages(user.id);
+        return;
+      }
+
+      // Fallback to Supabase authentication
       const { data: { user } } = await supabase.auth.getUser();
       if (user) {
         setCurrentUser(user);
         fetchMessages(user.id);
       }
-    };
-    
-    checkUser();
-  }, []);
+    } catch (error) {
+      console.error("Error checking user auth:", error);
+    }
+  };
   
   const fetchMessages = async (userId: string) => {
     setLoading(true);
@@ -80,18 +93,35 @@ const GeminiChat = () => {
   
   const handleSendMessage = async () => {
     if (!newMessage.trim() && !imageFile) return;
+    
+    // Check if user exists in state
     if (!currentUser) {
-      toast.error("You need to be logged in to send messages");
-      return;
+      // Try to get from localStorage as fallback
+      const storedUser = localStorage.getItem("currentUser");
+      if (storedUser) {
+        setCurrentUser(JSON.parse(storedUser));
+      } else {
+        toast.error("You need to be logged in to send messages");
+        return;
+      }
     }
     
     setLoading(true);
     let imageUrl = null;
     
     try {
+      // Get user ID from either currentUser state or localStorage
+      const userId = currentUser?.id || JSON.parse(localStorage.getItem("currentUser") || '{}').id;
+      
+      if (!userId) {
+        toast.error("User ID not found. Please try logging in again.");
+        setLoading(false);
+        return;
+      }
+      
       // Upload image if selected
       if (imageFile) {
-        const filePath = `${currentUser.id}/${uuidv4()}`;
+        const filePath = `${userId}/${uuidv4()}`;
         const { data: uploadData, error: uploadError } = await supabase.storage
           .from("chat_images")
           .upload(filePath, imageFile);
@@ -126,7 +156,7 @@ const GeminiChat = () => {
           id: userMessageId,
           content: newMessage,
           image_url: imageUrl,
-          user_id: currentUser.id,
+          user_id: userId,
           is_user: true,
         });
         
@@ -173,7 +203,7 @@ const GeminiChat = () => {
         .insert({
           id: aiMessageId,
           content: data.response,
-          user_id: currentUser.id,
+          user_id: userId,
           is_user: false,
         });
         
