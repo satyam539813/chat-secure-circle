@@ -136,7 +136,7 @@ const GeminiChat = () => {
       const { data: sessionData } = await supabase.auth.getSession();
       const token = sessionData?.session?.access_token;
       
-      const response = await fetch(`${supabase.functions.url}/gemini-chat`, {
+      const response = await fetch(`https://rsgnxdofwaakglonufcx.supabase.co/functions/v1/gemini-chat`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
