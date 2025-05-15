@@ -1,11 +1,11 @@
 
 import AppLayout from "@/components/layout/AppLayout";
-import MessageContainer from "@/components/messaging/MessageContainer";
+import GeminiChat from "@/components/messaging/GeminiChat";
 
 const Messages = () => {
   return (
     <AppLayout>
-      <MessageContainer />
+      <GeminiChat />
     </AppLayout>
   );
 };
